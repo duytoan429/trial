@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Đăng nhập — Trial Free</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="container">
+  <div class="card login-card">
+    <h2>🔐 Đăng nhập</h2>
+    <input id="email" type="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Mật khẩu">
+    <button id="btnLogin">Đăng nhập</button>
+    <button id="btnRegister" class="btn-secondary">Đăng ký</button>
+    <div id="msg" class="msg"></div>
+  </div>
+</div>
+
+<script type="module">
+import { supabase } from './js/supabase.js';
+
+const msg = document.getElementById('msg');
+const show = (text, type = 'error') => {
+  msg.className = 'msg show msg-' + type;
+  msg.textContent = text;
+};
+
+const { data: { session } } = await supabase.auth.getSession();
+if (session) location.href = 'dashboard.html';
+
+document.getElementById('btnLogin').onclick = async () => {
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  if (!email || !password) return show('Nhập đủ email và mật khẩu');
+
+  show('Đang đăng nhập...', 'info');
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) return show('❌ ' + error.message);
+  location.href = 'dashboard.html';
+};
+
+document.getElementById('btnRegister').onclick = async () => {
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  if (!email || !password) return show('Nhập đủ email và mật khẩu');
+  if (password.length < 6) return show('Mật khẩu cần ít nhất 6 ký tự');
+
+  show('Đang đăng ký...', 'info');
+  const { error } = await supabase.auth.signUp({ email, password });
+  if (error) return show('❌ ' + error.message);
+  show('✅ Đăng ký thành công! Đang chuyển hướng...', 'success');
+  setTimeout(() => location.href = 'dashboard.html', 1000);
+};
+</script>
+</body>
+</html>
