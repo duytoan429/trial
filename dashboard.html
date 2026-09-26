@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dashboard — Trial Free</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="header">
+  <a href="dashboard.html" class="logo">🎮 Trial Free</a>
+  <div class="header-actions">
+    <span class="balance-badge" id="balance">-- HCOIN</span>
+    <button class="btn-logout" id="btnLogout">Đăng xuất</button>
+  </div>
+</header>
+
+<div class="container">
+  <h1>Dashboard</h1>
+  <p style="color:var(--text-dim)">Nhận trial <strong style="color:var(--success)">MIỄN PHÍ</strong> cho cloud phone — mỗi tài khoản 1 lần/dịch vụ</p>
+
+  <div class="tools-grid">
+    <a href="tools/buydevice_vmos.html" class="tool-card">
+      <div class="tool-icon">📱</div>
+      <h3>VMOS Trial</h3>
+      <p class="tool-sub">Cloud phone Android — 3 giờ miễn phí</p>
+      <div class="tool-free">🎁 MIỄN PHÍ</div>
+    </a>
+
+    <a href="tools/buydevice_vsphone.html" class="tool-card">
+      <div class="tool-icon">☁️</div>
+      <h3>Vsphone Trial</h3>
+      <p class="tool-sub">Cloud phone Android — 24 giờ miễn phí</p>
+      <div class="tool-free">🎁 MIỄN PHÍ</div>
+    </a>
+  </div>
+
+  <div class="card">
+    <h2>📋 Thiết bị trial của bạn</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Provider</th>
+          <th>Device ID</th>
+          <th>Hết hạn</th>
+          <th>Trạng thái</th>
+        </tr>
+      </thead>
+      <tbody id="devicesBody">
+        <tr><td colspan="4" style="text-align:center;color:var(--text-dim)">Đang tải...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script type="module">
+import { supabase } from './js/supabase.js';
+
+const { data: { session } } = await supabase.auth.getSession();
+if (!session) location.href = 'login.html';
+
+const { data: profile } = await supabase
+  .from('profiles').select('hcoin_balance').eq('id', session.user.id).single();
+document.getElementById('balance').textContent =
+  (profile?.hcoin_balance ?? 0).toLocaleString('vi-VN') + ' HCOIN';
+
+const { data: devices } = await supabase
+  .from('devices').select('*').eq('user_id', session.user.id)
+  .order('created_at', { ascending: false });
+
+const tbody = document.getElementById('devicesBody');
+if (!devices || devices.length === 0) {
+  tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-dim)">Chưa có thiết bị nào</td></tr>';
+} else {
+  tbody.innerHTML = devices.map(d => {
+    const expired = new Date(d.trial_end) < new Date();
+    const status = expired ? 'expired' : d.status;
+    return `
+      <tr>
+        <td><strong>${d.provider.toUpperCase()}</strong></td>
+        <td style="font-family:monospace;font-size:.85rem">${d.device_id}</td>
+        <td>${new Date(d.trial_end).toLocaleString('vi-VN')}</td>
+        <td><span class="badge badge-${status}">${status === 'active' ? 'Hoạt động' : 'Hết hạn'}</span></td>
+      </tr>
+    `;
+  }).join('');
+}
+
+document.getElementById('btnLogout').onclick = async () => {
+  await supabase.auth.signOut();
+  location.href = 'login.html';
+};
+</script>
+</body>
+</html>
