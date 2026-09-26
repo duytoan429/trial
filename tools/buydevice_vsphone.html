@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vsphone Trial Free</title>
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<header class="header">
+  <a href="../dashboard.html" class="logo">🎮 Trial Free</a>
+  <div class="header-actions">
+    <span class="balance-badge" id="balance">-- HCOIN</span>
+  </div>
+</header>
+
+<div class="container">
+  <a href="../dashboard.html" class="back-link">← Quay lại Dashboard</a>
+
+  <div class="card">
+    <h1>☁️ Vsphone Trial</h1>
+    <p style="color:var(--text-dim)">Nhận cloud phone Android <strong>24 giờ MIỄN PHÍ</strong></p>
+
+    <div class="notice">
+      ⚠️ Mỗi tài khoản chỉ được nhận trial Vsphone <strong>1 lần duy nhất</strong>.
+    </div>
+
+    <button id="buyBtn" style="background:var(--success)">🎁 Nhận Trial MIỄN PHÍ</button>
+    <div id="msg" class="msg"></div>
+
+    <div id="deviceInfo" style="display:none">
+      <h3 style="margin-top:2rem">✅ Thông tin đăng nhập</h3>
+      <div class="device-box" id="deviceBox"></div>
+      <div class="notice" style="margin-top:1rem">
+        💡 Tải app <strong>Vsphone</strong> trên CH Play / App Store và đăng nhập bằng thông tin trên.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { supabase } from '../js/supabase.js';
+
+const { data: { session } } = await supabase.auth.getSession();
+if (!session) location.href = '../login.html';
+
+const msg = document.getElementById('msg');
+const show = (text, type = 'error') => {
+  msg.className = 'msg show msg-' + type;
+  msg.textContent = text;
+};
+
+const { data: profile } = await supabase
+  .from('profiles').select('hcoin_balance').eq('id', session.user.id).single();
+document.getElementById('balance').textContent =
+  (profile?.hcoin_balance ?? 0).toLocaleString('vi-VN') + ' HCOIN';
+
+document.getElementById('buyBtn').onclick = async () => {
+  const btn = document.getElementById('buyBtn');
+  btn.disabled = true;
+  btn.textContent = 'Đang tạo trial...';
+  show('⏳ Đang đăng ký Vsphone Trial...', 'info');
+
+  const { data, error } = await supabase.functions.invoke('create-trial', {
+    body: { provider: 'vsphone' },
+  });
+
+  if (error || data?.error) {
+    show('❌ ' + (error?.message || data.error));
+    btn.disabled = false;
+    btn.textContent = '🎁 Nhận Trial MIỄN PHÍ';
+    return;
+  }
+
+  show('🎉 Nhận trial thành công!', 'success');
+  document.getElementById('deviceInfo').style.display = 'block';
+  document.getElementById('deviceBox').innerHTML = `
+    <div><strong>Device ID:</strong> ${data.device.device_id}</div>
+    <div><strong>Gói:</strong> ${data.device.device_name}</div>
+    <div><strong>Email:</strong> ${data.device.credentials?.email || '-'}</div>
+    <div><strong>Password:</strong> ${data.device.credentials?.password || '-'}</div>
+    <div><strong>Hết hạn:</strong> ${new Date(data.device.trial_end).toLocaleString('vi-VN')}</div>
+  `;
+  btn.textContent = '✅ Đã nhận';
+};
+</script>
+</body>
+</html>
